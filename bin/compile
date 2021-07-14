@@ -8,9 +8,10 @@ PACKAGE="https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download
 BINARY="ghostpcl-9.54.0-linux-x86_64/gpcl6-9540-linux-x86_64"
 LOCATION="$BUILD_DIR/vendor/gs"
 
+# execute
 cd $BUILD_DIR
 mkdir -p $LOCATION/bin
-wget -O gs.tgz $PACKAGE # Couldn't get curl to work for some reason
+wget -O gs.tgz $PACKAGE
 tar xvf gs.tgz
 mv $BINARY $LOCATION/bin/gs
 
