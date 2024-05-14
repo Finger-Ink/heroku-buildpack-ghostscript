@@ -1,17 +1,5 @@
-# Heroku Buildpack for Ghostscript
+# Buildpack for Ghostscript
 
-## Currently installs Ghostscript 10.0.0 on Heroku Cedar.
+Installs Ghostscript 10.03.0 for herokuish systems.
 
-#### Install
-
-```shell
-$ cd /path/to/your-app
-$ heroku buildpacks:add https://github.com/Wilfison/heroku-buildpack-ghostscript.git
-
-# Push changes to deploy
-$ git push heroku master
-
-# This version of ghostscript will end up deployed at /app/vendor/gs/bin/gs
-# So you may want to set an environment variable to let your app know where it is. e.g.
-$ heroku config:set GS_PATH=/app/vendor/gs/bin/gs
-```
+The included binary has been compiled on a linux system.
