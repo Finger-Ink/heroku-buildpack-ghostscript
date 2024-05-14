@@ -1,21 +1,20 @@
 #!/usr/bin/env bash
 # bin/compile <build-dir> <cache-dir>
 
-echo "-----> Installing Ghostscript 9.54.0 using build directory $1"
+echo "-----> Installing Ghostscript 10.03.0 using build directory $1"
 
 BUILD_DIR=$1
-PACKAGE="https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs1000/ghostscript-10.0.0-linux-x86_64.tgz"
-BINARY="ghostscript-10.0.0-linux-x86_64/gs-1000-linux-x86_64"
+BIN_DIR=$(dirname $0)  # Gets the directory where the script is located
+BINARY="gs"
 LOCATION="$BUILD_DIR/vendor/gs"
 
-# execute
-cd $BUILD_DIR
+# Create the directory where Ghostscript will reside
 mkdir -p $LOCATION/bin
-wget -O gs.tgz $PACKAGE
-tar xvf gs.tgz
-mv $BINARY $LOCATION/bin/gs
 
-echo "-----> Building runtime environment for Ghostscript to $LOCATION"
+# Copy the binary from the buildpack to the build directory
+cp $BIN_DIR/bin/$BINARY $LOCATION/bin/gs
+
+echo "-----> Setting up Ghostscript runtime environment"
 
 mkdir -p $BUILD_DIR/.profile.d
 echo "export PATH=\"\$HOME/vendor/gs/bin:\$PATH\"" > $BUILD_DIR/.profile.d/ghostscript.sh
