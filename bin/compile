@@ -12,7 +12,7 @@ LOCATION="$BUILD_DIR/vendor/gs"
 mkdir -p $LOCATION/bin
 
 # Copy the binary from the buildpack to the build directory
-cp $BIN_DIR/bin/$BINARY $LOCATION/bin/gs
+cp $BIN_DIR/$BINARY $LOCATION/bin/gs
 
 echo "-----> Setting up Ghostscript runtime environment"
 
