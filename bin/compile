@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # bin/compile <build-dir> <cache-dir>
 
-echo "-----> Installing Ghostscript 10.03.0 using build directory $1"
+echo "-----> Installing Ghostscript 10.03.1 using build directory $1"
 
 BUILD_DIR=$1
 BIN_DIR=$(dirname $0)  # Gets the directory where the script is located

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # bin/detect <build-dir>
 
-echo "Ghostscript 10.03.0"
+echo "Ghostscript 10.03.1"
 exit 0
 
