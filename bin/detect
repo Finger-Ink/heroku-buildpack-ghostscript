@@ -1,6 +1,5 @@
-#!/usr/bin/env bash
-# bin/detect <build-dir>
-
-echo "Ghostscript 10.0.0"
+#!/bin/sh
+# bin/detect
+# Heroku uses this to see if the buildpack should run
+echo "Ghostscript 10.06.0 buildpack"
 exit 0
-

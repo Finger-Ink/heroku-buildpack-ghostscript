@@ -1,0 +1,4 @@
+#!/bin/sh
+# bin/release
+# No release phase needed for Ghostscript
+exit 0

@@ -1,21 +1,35 @@
 #!/usr/bin/env bash
 # bin/compile <build-dir> <cache-dir>
 
-echo "-----> Installing Ghostscript 10.0.0 using build directory $1"
+echo "-----> Installing Ghostscript 10.06.0 using build directory $1"
 
 BUILD_DIR=$1
-PACKAGE="https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs1000/ghostscript-10.0.0-linux-x86_64.tgz"
-BINARY="ghostscript-10.0.0-linux-x86_64/gs-1000-linux-x86_64"
+CACHE_DIR=$2
+GS_VERSION="10.06.0"
+GS_SHORT="10060"
+PACKAGE="https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs${GS_SHORT}/ghostscript-${GS_VERSION}-linux-x86_64.tgz"
+ARCHIVE_DIR="ghostscript-${GS_VERSION}-linux-x86_64"
+ARCHIVE_BINARY="${ARCHIVE_DIR}/gs-${GS_SHORT}-linux-x86_64"
 LOCATION="$BUILD_DIR/vendor/gs"
+CACHE_TAR="$CACHE_DIR/ghostscript-${GS_VERSION}.tgz"
 
-# execute
-cd $BUILD_DIR
-mkdir -p $LOCATION/bin
-wget -O gs.tgz $PACKAGE
-tar xvf gs.tgz
-mv $BINARY $LOCATION/bin/gs
+mkdir -p "$CACHE_DIR"
 
-echo "-----> Building runtime environment for Ghostscript to $LOCATION"
+if [ ! -f "$CACHE_TAR" ]; then
+  echo "-----> Downloading Ghostscript binary"
+  curl -L "$PACKAGE" -o "$CACHE_TAR"
+fi
 
-mkdir -p $BUILD_DIR/.profile.d
-echo "export PATH=\"\$HOME/vendor/gs/bin:\$PATH\"" > $BUILD_DIR/.profile.d/ghostscript.sh
+mkdir -p "$LOCATION/bin"
+
+TMP_DIR=$(mktemp -d)
+tar xzf "$CACHE_TAR" -C "$TMP_DIR"
+cp "$TMP_DIR/$ARCHIVE_BINARY" "$LOCATION/bin/gs"
+chmod +x "$LOCATION/bin/gs"
+rm -rf "$TMP_DIR"
+
+echo "-----> Ghostscript installed to $LOCATION/bin/gs"
+"$LOCATION/bin/gs" --version
+
+mkdir -p "$BUILD_DIR/.profile.d"
+echo "export PATH=\"\$HOME/vendor/gs/bin:\$PATH\"" > "$BUILD_DIR/.profile.d/ghostscript.sh"
