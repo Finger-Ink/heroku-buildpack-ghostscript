@@ -8,7 +8,7 @@ CACHE_DIR=$(cd "$2" && pwd)
 
 GS_VERSION="10.06.0"
 GS_SHORT="10060"
-PACKAGE="https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs${GS_SHORT}/ghostscript-${GS_VERSION}-linux-x86_64.tgz"
+PACKAGE_URL="https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs${GS_SHORT}/ghostscript-${GS_VERSION}.tar.gz"
 ARCHIVE_DIR="ghostscript-${GS_VERSION}-linux-x86_64"
 ARCHIVE_BINARY="${ARCHIVE_DIR}/gs-${GS_SHORT}-linux-x86_64"
 LOCATION="$BUILD_DIR/vendor/gs"
