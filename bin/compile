@@ -8,56 +8,73 @@ CACHE_DIR=$(cd "$2" && pwd)
 
 GS_VERSION="10.06.0"
 GS_SHORT="10060"
+
 PACKAGE_URL="https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs${GS_SHORT}/ghostscript-${GS_VERSION}.tar.gz"
-ARCHIVE_DIR="ghostscript-${GS_VERSION}-linux-x86_64"
-ARCHIVE_BINARY="${ARCHIVE_DIR}/gs-${GS_SHORT}-linux-x86_64"
-LOCATION="$BUILD_DIR/vendor/gs"
-CACHE_TAR="$CACHE_DIR/ghostscript-${GS_VERSION}.tgz"
+CACHE_TAR="${CACHE_DIR}/ghostscript-${GS_VERSION}.tar.gz"
 
-echo "-----> Installing Ghostscript $GS_VERSION using build directory $BUILD_DIR"
+# Where we will "install" gs inside the slug
+PREFIX="${BUILD_DIR}/vendor/ghostscript"
 
-mkdir -p "$CACHE_DIR" "$LOCATION/bin"
+echo "-----> Installing Ghostscript ${GS_VERSION} using build directory ${BUILD_DIR}"
+
+mkdir -p "${CACHE_DIR}" "${PREFIX}"
 
 download_tarball() {
-  local tmp_tar
-  tmp_tar="${CACHE_TAR}.download"
-  echo "-----> Downloading Ghostscript binary"
-  curl -fsSL "$PACKAGE" -o "$tmp_tar"
-  mv "$tmp_tar" "$CACHE_TAR"
+  local tmp="${CACHE_TAR}.download"
+  echo "-----> Downloading Ghostscript source"
+  curl -fsSL "${PACKAGE_URL}" -o "${tmp}"
+  mv "${tmp}" "${CACHE_TAR}"
 }
 
-if [ ! -f "$CACHE_TAR" ]; then
+if [[ ! -f "${CACHE_TAR}" ]]; then
   download_tarball
 fi
 
-TMP_DIR=$(mktemp -d)
-cleanup() {
-  rm -rf "$TMP_DIR"
-}
+TMP_DIR="$(mktemp -d)"
+cleanup() { rm -rf "${TMP_DIR}"; }
 trap cleanup EXIT
 
-extract_archive() {
-  if ! tar xzf "$CACHE_TAR" -C "$TMP_DIR"; then
-    echo "-----> Cached Ghostscript archive invalid; re-downloading"
-    rm -f "$CACHE_TAR"
+extract() {
+  if ! tar xzf "${CACHE_TAR}" -C "${TMP_DIR}"; then
+    echo "-----> Cached tarball invalid; re-downloading"
+    rm -f "${CACHE_TAR}"
     download_tarball
-    tar xzf "$CACHE_TAR" -C "$TMP_DIR"
+    tar xzf "${CACHE_TAR}" -C "${TMP_DIR}"
   fi
 }
+extract
 
-extract_archive
-
-BINARY_PATH="$TMP_DIR/$ARCHIVE_BINARY"
-if [ ! -f "$BINARY_PATH" ]; then
-  echo "ERROR: Expected Ghostscript binary '$ARCHIVE_BINARY' not found in archive"
-  ls -R "$TMP_DIR" || true
+SRC_DIR="$(find "${TMP_DIR}" -maxdepth 1 -type d -name "ghostscript-${GS_VERSION}" | head -n1)"
+if [[ -z "${SRC_DIR}" || ! -d "${SRC_DIR}" ]]; then
+  echo "ERROR: source directory not found after extract"
+  ls -la "${TMP_DIR}" || true
   exit 1
 fi
 
-install -m 0755 "$BINARY_PATH" "$LOCATION/bin/gs"
+# Build
+echo "-----> Configuring Ghostscript"
+# Common flags to keep it lean; adjust as you need
+pushd "${SRC_DIR}" >/dev/null
+./configure --prefix="${PREFIX}" --disable-cups --without-x
 
-echo "-----> Ghostscript installed to $LOCATION/bin/gs"
-"$LOCATION/bin/gs" --version
+echo "-----> Building Ghostscript (this can take a few minutes)"
+make -j"$(nproc)"
 
-mkdir -p "$BUILD_DIR/.profile.d"
-echo "export PATH=\"\$HOME/vendor/gs/bin:\$PATH\"" > "$BUILD_DIR/.profile.d/ghostscript.sh"
+echo "-----> Installing Ghostscript to ${PREFIX}"
+make install
+popd >/dev/null
+
+# Verify
+if ! "${PREFIX}/bin/gs" --version >/dev/null 2>&1; then
+  echo "ERROR: gs did not install correctly"
+  exit 1
+fi
+echo "-----> Ghostscript installed: $("${PREFIX}/bin/gs" --version)"
+
+# Export PATH for runtime
+mkdir -p "${BUILD_DIR}/.profile.d"
+cat > "${BUILD_DIR}/.profile.d/ghostscript.sh" <<'EOF'
+export PATH="$HOME/vendor/ghostscript/bin:$PATH"
+EOF
+
+echo "-----> Exported PATH for Ghostscript"
