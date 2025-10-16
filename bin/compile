@@ -1,80 +1,21 @@
 #!/usr/bin/env bash
 # bin/compile <build-dir> <cache-dir>
 
-set -euo pipefail
+echo "-----> Installing Ghostscript 10.0.0 using build directory $1"
 
-BUILD_DIR=$(cd "$1" && pwd)
-CACHE_DIR=$(cd "$2" && pwd)
+BUILD_DIR=$1
+PACKAGE="https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs1000/ghostscript-10.0.0-linux-x86_64.tgz"
+BINARY="ghostscript-10.0.0-linux-x86_64/gs-1000-linux-x86_64"
+LOCATION="$BUILD_DIR/vendor/gs"
 
-GS_VERSION="10.06.0"
-GS_SHORT="10060"
+# execute
+cd $BUILD_DIR
+mkdir -p $LOCATION/bin
+wget -O gs.tgz $PACKAGE
+tar xvf gs.tgz
+mv $BINARY $LOCATION/bin/gs
 
-PACKAGE_URL="https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs${GS_SHORT}/ghostscript-${GS_VERSION}.tar.gz"
-CACHE_TAR="${CACHE_DIR}/ghostscript-${GS_VERSION}.tar.gz"
+echo "-----> Building runtime environment for Ghostscript to $LOCATION"
 
-# Where we will "install" gs inside the slug
-PREFIX="${BUILD_DIR}/vendor/ghostscript"
-
-echo "-----> Installing Ghostscript ${GS_VERSION} using build directory ${BUILD_DIR}"
-
-mkdir -p "${CACHE_DIR}" "${PREFIX}"
-
-download_tarball() {
-  local tmp="${CACHE_TAR}.download"
-  echo "-----> Downloading Ghostscript source"
-  curl -fsSL "${PACKAGE_URL}" -o "${tmp}"
-  mv "${tmp}" "${CACHE_TAR}"
-}
-
-if [[ ! -f "${CACHE_TAR}" ]]; then
-  download_tarball
-fi
-
-TMP_DIR="$(mktemp -d)"
-cleanup() { rm -rf "${TMP_DIR}"; }
-trap cleanup EXIT
-
-extract() {
-  if ! tar xzf "${CACHE_TAR}" -C "${TMP_DIR}"; then
-    echo "-----> Cached tarball invalid; re-downloading"
-    rm -f "${CACHE_TAR}"
-    download_tarball
-    tar xzf "${CACHE_TAR}" -C "${TMP_DIR}"
-  fi
-}
-extract
-
-SRC_DIR="$(find "${TMP_DIR}" -maxdepth 1 -type d -name "ghostscript-${GS_VERSION}" | head -n1)"
-if [[ -z "${SRC_DIR}" || ! -d "${SRC_DIR}" ]]; then
-  echo "ERROR: source directory not found after extract"
-  ls -la "${TMP_DIR}" || true
-  exit 1
-fi
-
-# Build
-echo "-----> Configuring Ghostscript"
-# Common flags to keep it lean; adjust as you need
-pushd "${SRC_DIR}" >/dev/null
-./configure --prefix="${PREFIX}" --disable-cups --without-x
-
-echo "-----> Building Ghostscript (this can take a few minutes)"
-make -j"$(nproc)"
-
-echo "-----> Installing Ghostscript to ${PREFIX}"
-make install
-popd >/dev/null
-
-# Verify
-if ! "${PREFIX}/bin/gs" --version >/dev/null 2>&1; then
-  echo "ERROR: gs did not install correctly"
-  exit 1
-fi
-echo "-----> Ghostscript installed: $("${PREFIX}/bin/gs" --version)"
-
-# Export PATH for runtime
-mkdir -p "${BUILD_DIR}/.profile.d"
-cat > "${BUILD_DIR}/.profile.d/ghostscript.sh" <<'EOF'
-export PATH="$HOME/vendor/ghostscript/bin:$PATH"
-EOF
-
-echo "-----> Exported PATH for Ghostscript"
+mkdir -p $BUILD_DIR/.profile.d
+echo "export PATH=\"\$HOME/vendor/gs/bin:\$PATH\"" > $BUILD_DIR/.profile.d/ghostscript.sh
