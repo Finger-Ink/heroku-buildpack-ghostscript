@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # bin/compile <build-dir> <cache-dir>
 
-echo "-----> Installing Ghostscript 10.06.0 using build directory $1"
+set -euo pipefail
 
-BUILD_DIR=$1
-CACHE_DIR=$2
+BUILD_DIR=$(cd "$1" && pwd)
+CACHE_DIR=$(cd "$2" && pwd)
+
 GS_VERSION="10.06.0"
 GS_SHORT="10060"
 PACKAGE="https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs${GS_SHORT}/ghostscript-${GS_VERSION}-linux-x86_64.tgz"
@@ -13,20 +14,47 @@ ARCHIVE_BINARY="${ARCHIVE_DIR}/gs-${GS_SHORT}-linux-x86_64"
 LOCATION="$BUILD_DIR/vendor/gs"
 CACHE_TAR="$CACHE_DIR/ghostscript-${GS_VERSION}.tgz"
 
-mkdir -p "$CACHE_DIR"
+echo "-----> Installing Ghostscript $GS_VERSION using build directory $BUILD_DIR"
+
+mkdir -p "$CACHE_DIR" "$LOCATION/bin"
+
+download_tarball() {
+  local tmp_tar
+  tmp_tar="${CACHE_TAR}.download"
+  echo "-----> Downloading Ghostscript binary"
+  curl -fsSL "$PACKAGE" -o "$tmp_tar"
+  mv "$tmp_tar" "$CACHE_TAR"
+}
 
 if [ ! -f "$CACHE_TAR" ]; then
-  echo "-----> Downloading Ghostscript binary"
-  curl -L "$PACKAGE" -o "$CACHE_TAR"
+  download_tarball
 fi
 
-mkdir -p "$LOCATION/bin"
-
 TMP_DIR=$(mktemp -d)
-tar xzf "$CACHE_TAR" -C "$TMP_DIR"
-cp "$TMP_DIR/$ARCHIVE_BINARY" "$LOCATION/bin/gs"
-chmod +x "$LOCATION/bin/gs"
-rm -rf "$TMP_DIR"
+cleanup() {
+  rm -rf "$TMP_DIR"
+}
+trap cleanup EXIT
+
+extract_archive() {
+  if ! tar xzf "$CACHE_TAR" -C "$TMP_DIR"; then
+    echo "-----> Cached Ghostscript archive invalid; re-downloading"
+    rm -f "$CACHE_TAR"
+    download_tarball
+    tar xzf "$CACHE_TAR" -C "$TMP_DIR"
+  fi
+}
+
+extract_archive
+
+BINARY_PATH="$TMP_DIR/$ARCHIVE_BINARY"
+if [ ! -f "$BINARY_PATH" ]; then
+  echo "ERROR: Expected Ghostscript binary '$ARCHIVE_BINARY' not found in archive"
+  ls -R "$TMP_DIR" || true
+  exit 1
+fi
+
+install -m 0755 "$BINARY_PATH" "$LOCATION/bin/gs"
 
 echo "-----> Ghostscript installed to $LOCATION/bin/gs"
 "$LOCATION/bin/gs" --version
